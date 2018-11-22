@@ -296,7 +296,7 @@ class SpatialDB(SqliteDB):
             return ogr.OFTReal
 
 
-    def toShp(self, sql, fileshp, epsg=3857):
+    def toShp(self, sql, env, fileshp, epsg=3857):
         """
         CreateShape
 
@@ -306,8 +306,6 @@ class SpatialDB(SqliteDB):
            FROM table;
         """
         layername  = str(juststem(fileshp))
-        env = {"layername": layername}
-
         f_geometry_column = "geometry"
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(int(epsg))
@@ -404,7 +402,7 @@ if __name__ == "__main__":
            AND NOT L.X IS NULL
            AND NOT Ts.value IS NULL
            AND NOT L.point IN ('I1','I2');"""
-    db.toShp(sql,"test.shp")
+    db.toShp(sql,None,"test.shp")
 
 
 
