@@ -319,7 +319,7 @@ class SpatialDB(SqliteDB):
         #detect geometry type
         geometry_type =1 #default is POINT
         fieldnames,fieldtypes = [],[]
-        sql_limit_1 = sql if "LIMIT" in upper(sql) else sql.strip("\r\n\t ;")+"LIMIT 1;"
+        sql_limit_1 = sql if "LIMIT" in upper(sql) else sql.strip("\r\n\t ;")+" LIMIT 1;"
         features = self.execute(sql_limit_1, env, outputmode="object", verbose=False)
 
         for feature in features:
