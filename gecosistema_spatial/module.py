@@ -27,7 +27,7 @@ from gecosistema_database import *
 
 import unicodecsv as csv
 import sqlite3
-import ogr,osr
+import ogr
 
 class SpatialDB(SqliteDB):
 
@@ -39,8 +39,7 @@ class SpatialDB(SqliteDB):
         SqliteDB.__init__(self, filename, ["mod_spatialite"] + modules)
         #self.CreateSpatialReferenceTable()
         #self.CreateGeometryColumnTable()
-        if not self.TableExists("spatial_ref_sys"):
-            self.execute("""SELECT InitSpatialMetaData();""")
+        self.execute("""SELECT InitSpatialMetaData();""")
 
     def CreateSpatialReferenceTable(self):
         sql = """
@@ -276,91 +275,64 @@ class SpatialDB(SqliteDB):
 
         return fileshp
 
-    def ogrType(self,value):
-        """
-        infert type from value
-        """
-        if isdate(value):
-            return ogr.OFTDate
-        elif isdatetime(value):
-            return ogr.OFTDateTime
-        elif isinstance(value,(int,bool)):
-            return ogr.OFTInteger
-        elif isfloat(value):
-            return ogr.OFTReal
-        elif isstring(value):
-            return ogr.OFTString
-        elif isinstance(value, (buffer,)):
-            return ogr.OFTBinary
-        else:
-            return ogr.OFTReal
-
-
-    def toShp(self, sql, fileshp, epsg=3857):
+    def toShp(self, sql, fileshp, fieldnames=""):
         """
         CreateShape
-
-        SELECT
-            AsBinary(MakePoint(X,Y)) as geometry,
-            piezo as value
-           FROM table;
         """
         layername  = str(juststem(fileshp))
         env = {"layername": layername}
-
-        f_geometry_column = "geometry"
+        cur = self.execute(
+            "SELECT f_geometry_column,geometry_type,srid FROM [geometry_columns] WHERE f_table_name='{layername}';",
+            env, outputmode="array", verbose=True)
+        if cur:
+            f_geometry_column, geometry_type, srid = cur[0]
+            print  f_geometry_column, geometry_type, srid
+        else:
+            return
+        env["f_geometry_column"] = f_geometry_column
         srs = osr.SpatialReference()
-        srs.ImportFromEPSG(int(epsg))
+        srs.ImportFromEPSG(srid)
 
         mkdirs(justpath(fileshp))
         driver = ogr.GetDriverByName("ESRI Shapefile")
         if file(fileshp):
             driver.DeleteDataSource(fileshp)
         ds = driver.CreateDataSource(fileshp)
-
-        #detect geometry type
-        geometry_type =1 #default is POINT
-        fieldnames,fieldtypes = [],[]
-        sql_limit_1 = sql if "LIMIT" in upper(sql) else sql.strip("\r\n\t ;")+"LIMIT 1;"
-        features = self.execute(sql_limit_1, env, outputmode="object", verbose=False)
-
-        for feature in features:
-            fieldnames = feature.keys()
-            fieldtypes = [ self.ogrType(feature[key]) for key in fieldnames]
-
-        #detect f_geometry_column
-        for fieldname, fieldtype in zip(fieldnames, fieldtypes):
-            if fieldtype == ogr.OFTBinary:
-                f_geometry_column = fieldname
-                geom = ogr.CreateGeometryFromWkb(str(feature[f_geometry_column]))
-                geometry_type = geom.GetGeometryType()
-                break
-
-        #create the layer
         layer = ds.CreateLayer(str(layername), srs, geometry_type)
 
-        # Add extra fields
-        for fieldname,fieldtype in zip(fieldnames,fieldtypes):
-            if fieldname != f_geometry_column:
-                layer.CreateField(ogr.FieldDefn(str(fieldname)[:10], fieldtype))
+        if fieldnames == "*":
+            items = self.GetFieldNames(layername, "INTEGER|FLOAT|TEXT", typeinfo=True)
+            fieldnames = [fieldname for fieldname, _ in items]
+            for fieldname, ftype in items:
+                if ftype == "INTEGER":
+                    ogrtype = ogr.OFTInteger
+                elif ftype == "FLOAT":
+                    ogrtype = ogr.OFTReal
+                elif ftype == "TEXT":
+                    ogrtype = ogr.OFTString
+                else:
+                    ogrtype = ogr.OFTReal
+                layer.CreateField(ogr.FieldDefn(str(fieldname)[:10], ogrtype))
+        else:
+            fieldnames = listify(fieldnames)
 
-        ogc_fid = 0
+            for fieldname in fieldnames:
+                layer.CreateField(ogr.FieldDefn(str(fieldname)[:10], ogr.OFTReal))
+
+        #features = self.execute("SELECT * FROM [{layername}];", env, outputmode="object", verbose=False)
         features = self.execute(sql, env, outputmode="object", verbose=False)
         for row in features:
             #blob =  sqlite3.Binary(row[f_geometry_column])
             #geom = ogr.CreateGeometryFromWkb(str(blob) )
             geom = ogr.CreateGeometryFromWkb(str(row[f_geometry_column]))
-
             feature = ogr.Feature(layer.GetLayerDefn())
-            feature.SetFID(ogc_fid)
-            feature.SetGeometry(geom)
+            feature.SetFID(row["ogc_fid"])
             for fieldname in fieldnames:
-                if fieldname != f_geometry_column:
+                if row.has_key(fieldname):
                     feature.SetField(str(fieldname)[:10], row[fieldname])
-
+            feature.SetGeometry(geom)
             layer.CreateFeature(feature)
             feature = None
-            ogc_fid +=1
 
         return fileshp
 
@@ -389,25 +361,45 @@ class SpatialDB(SqliteDB):
 
 if __name__ == "__main__":
 
-    chdir(r"D:\Users\vlr20\Projects\GitHub\gecosistema_feflow\gecosistema_feflow")
-    db = SpatialDB("feflow.sqlite")
-    db.attach("sicura.sqlite")
+    chdir(r"c:\users\vlr20\Desktop")
+    db = SpatialDB("sp.db")
+    filecsv = "csv/Irraggiamento.csv"
 
-    sql = """
-    SELECT AsBinary(MakePoint(L.X,L.Y)) as Shape,
-           Ts.VALUE
-           FROM sicura.[Ts] Ts
-    INNER JOIN sicura.[location] L ON L.id=Ts.location_id
-    WHERE Date='2015-08-01'
-        AND Ts.type_id='176'
-           AND Ts.location_id>1000000
-           AND NOT L.X IS NULL
-           AND NOT Ts.value IS NULL
-           AND NOT L.point IN ('I1','I2');"""
-    db.toShp(sql,"test.shp")
+    db.importGeomsFromCsv("pool",filecsv)
 
+    print db.execute("""
+    DROP TABLE IF EXISTS [receptors];
+    CREATE TABLE [receptors](ogc_fid INTEGER PRIMARY KEY AUTOINCREMENT,X FLOAT,Y FLOAT);
+    SELECT AddGeometryColumn('receptors','Geometry',3857,'POINT',2);
+    SELECT CreateSpatialIndex('receptors','Geometry');
+    """)
+    db.GridFromExtent("receptors",(-100, -100, 100, 100),dx=0.5)
 
+    db.RotatePlume("pool")
+    #db.CreateShape("pool","pool.shp")
 
+    print "start query..."
+    t1  = now()
+    db.execute("""
+DROP TABLE IF EXISTS LocalRisk;
+CREATE TABLE LocalRisk AS
+SELECT r.[ogc_fid] as ogc_fid,
+r.X as X,
+r.Y as Y,
+count(*) as n
+FROM receptors AS r ,pool AS p
+WHERE Contains(BuildMbr(r.X-0.25,r.y-0.25,r.X+0.25,r.Y+0.25,3857),p.geometry)
+  AND r.ROWID IN (
+    SELECT ROWID
+    FROM SpatialIndex
+    WHERE f_table_name = 'receptors'
+        AND search_frame = Buffer(p.geometry,0.5*1.414) )
+GROUP BY r.ogc_fid;
+SELECT AddGeometryColumn('LocalRisk','Geometry',3857,'POINT',2);
+UPDATE [LocalRisk] SET Geometry = MakePoint(X,Y,3857);
+    """);
+
+    print "done in %s s."%(now()-t1).total_seconds()
     db.close()
 
 
