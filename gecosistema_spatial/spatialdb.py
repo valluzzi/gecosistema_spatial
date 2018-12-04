@@ -29,6 +29,8 @@ import unicodecsv as csv
 import sqlite3
 import ogr,osr
 
+from .getvalueat import GetValueAt
+
 class SpatialDB(SqliteDB):
 
     def __init__(self, filename, modules=[]):
