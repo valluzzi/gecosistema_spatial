@@ -22,7 +22,7 @@
 #
 # Created:     03/12/2018
 # -------------------------------------------------------------------------------
-import gdal,gdalconst
+import gdal,gdalconst,struct
 
 def MapToPixel(mx, my, gt):
     """
