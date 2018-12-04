@@ -39,6 +39,7 @@ class SpatialDB(SqliteDB):
         SqliteDB.__init__(self, filename, ["mod_spatialite"] + modules)
         #self.CreateSpatialReferenceTable()
         #self.CreateGeometryColumnTable()
+        self.conn.create_function("GetValueAt", 3, GetValueAt)
         if not self.TableExists("spatial_ref_sys"):
             self.execute("""SELECT InitSpatialMetaData();""")
 
