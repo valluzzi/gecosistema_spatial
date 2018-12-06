@@ -310,7 +310,7 @@ class SpatialDB(SqliteDB):
             spatialRef.ImportFromEPSG(code)
         elif isstring(code) and isfile(code):
             wkt = filetostr(code)
-            spatialRef.ImportFromWkt(code)
+            spatialRef.ImportFromWkt(wkt)
         else:
             spatialRef.ImportFromWkt(3857)
 
