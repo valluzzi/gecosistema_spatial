@@ -298,6 +298,23 @@ class SpatialDB(SqliteDB):
         else:
             return ogr.OFTReal
 
+    def ImportSpatialReferenceFrom(self, code):
+        """
+        ImportSpatialReferenceFrom
+        """
+        spatialRef = osr.SpatialReference()
+        if isint(code):
+            spatialRef.ImportFromEPSG(code)
+        elif isstring(code) and code.startswith("epsg:"):
+            code= code.replace("epsg:","")
+            spatialRef.ImportFromEPSG(code)
+        elif isstring(code) and isfile(code):
+            wkt = filetostr(code)
+            spatialRef.ImportFromWkt(code)
+        else:
+            spatialRef.ImportFromWkt(3857)
+
+        return spatialRef
 
     def toShp(self, sql, env, fileshp, epsg=3857):
         """
@@ -310,8 +327,7 @@ class SpatialDB(SqliteDB):
         """
         layername  = str(juststem(fileshp))
         f_geometry_column = "geometry"
-        srs = osr.SpatialReference()
-        srs.ImportFromEPSG(int(epsg))
+        srs = self.ImportSpatialReferenceFrom(epsg)
 
         mkdirs(justpath(fileshp))
         driver = ogr.GetDriverByName("ESRI Shapefile")
