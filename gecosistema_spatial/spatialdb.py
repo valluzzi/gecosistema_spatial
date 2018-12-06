@@ -314,6 +314,8 @@ class SpatialDB(SqliteDB):
         else:
             spatialRef.ImportFromWkt(3857)
 
+        print spatialRef.ExportToProj4()
+
         return spatialRef
 
     def toShp(self, sql, env, fileshp, epsg=3857):
