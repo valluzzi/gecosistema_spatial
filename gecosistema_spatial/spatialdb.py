@@ -314,7 +314,7 @@ class SpatialDB(SqliteDB):
         else:
             spatialRef.ImportFromWkt(3857)
 
-        print spatialRef.ExportToProj4()
+        print "<%s>"%spatialRef.ExportToProj4()
 
         return spatialRef
 
