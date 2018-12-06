@@ -57,8 +57,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/gecosistema_spatial/spatialdb.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="456">
-              <caret line="315" column="12" selection-start-line="315" selection-start-column="12" selection-end-line="315" selection-end-column="12" />
+            <state relative-caret-position="178">
+              <caret line="43" column="61" selection-start-line="43" selection-start-column="51" selection-end-line="43" selection-end-column="61" />
               <folding>
                 <element signature="e#926#956#0" expanded="true" />
               </folding>
@@ -83,6 +83,11 @@
         <option value="Python Script" />
       </list>
     </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>GetValueAt</find>
+    </findStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -230,8 +235,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/gecosistema_spatial/spatialdb.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="456">
-          <caret line="315" column="12" selection-start-line="315" selection-start-column="12" selection-end-line="315" selection-end-column="12" />
+        <state relative-caret-position="178">
+          <caret line="43" column="61" selection-start-line="43" selection-start-column="51" selection-end-line="43" selection-end-column="61" />
           <folding>
             <element signature="e#926#956#0" expanded="true" />
           </folding>
